@@ -1,9 +1,11 @@
 """
-mdx_convert.py — Markdown <-> Excel 双向转换工具
+mdx_convert.py — Markdown <-> Excel/CSV 双向转换工具
 
 用法:
   python mdx_convert.py to-xl  input.md       # 每张表 → 独立 .xlsx 文件
+  python mdx_convert.py to-csv input.md       # 每张表 → 独立 .csv 文件
   python mdx_convert.py to-md  input.xlsx     # 每个 Sheet → 独立 .md 文件
+  python mdx_convert.py to-md  input.csv      # CSV → .md 文件
 """
 
 import sys
@@ -290,6 +292,68 @@ def xlsx_to_md(xlsx_path: str):
 
 
 # ──────────────────────────────────────────────
+#  Markdown → csv（每张表 → 独立文件）
+# ──────────────────────────────────────────────
+
+def md_to_csv(md_path: str):
+    md_path = Path(md_path)
+    if not md_path.exists():
+        sys.exit(f"[错误] 文件不存在: {md_path}")
+
+    text = md_path.read_text(encoding='utf-8')
+    tables = parse_md_tables(text)
+
+    if not tables:
+        sys.exit("[错误] 未在 Markdown 文件中找到任何表格")
+
+    stem = md_path.stem
+    out_dir = md_path.parent
+    used_names: set[str] = set()
+
+    for idx, (heading, df) in enumerate(tables, start=1):
+        df = _try_cast(df)
+
+        if len(tables) == 1:
+            base_name = stem
+        elif heading:
+            base_name = f"{stem}_{_safe_filename(heading)}"
+        else:
+            base_name = f"{stem}_table_{idx}"
+
+        file_name = base_name
+        counter = 2
+        while file_name in used_names:
+            file_name = f"{base_name}_{counter}"
+            counter += 1
+        used_names.add(file_name)
+
+        out_path = out_dir / f"{file_name}.csv"
+        df.to_csv(out_path, index=False, encoding='utf-8-sig')
+        print(f"[完成] {out_path}  ({len(df)} 行)")
+
+    if len(tables) > 1:
+        print(f"\n共提取 {len(tables)} 张表格 → {len(tables)} 个 csv 文件")
+
+
+# ──────────────────────────────────────────────
+#  csv → Markdown
+# ──────────────────────────────────────────────
+
+def csv_to_md(csv_path: str):
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        sys.exit(f"[错误] 文件不存在: {csv_path}")
+
+    df = pd.read_csv(csv_path, dtype=str, encoding='utf-8-sig').fillna('')
+    stem = csv_path.stem
+    out_path = csv_path.parent / f"{stem}.md"
+
+    content = f"## {stem}\n\n{_df_to_md_table(df)}\n"
+    out_path.write_text(content, encoding='utf-8')
+    print(f"[完成] {out_path}  ({len(df)} 行)")
+
+
+# ──────────────────────────────────────────────
 #  入口
 # ──────────────────────────────────────────────
 
@@ -301,8 +365,16 @@ def main():
     mode, input_path = sys.argv[1], sys.argv[2]
     if mode == 'to-xl':
         md_to_xlsx(input_path)
+    elif mode == 'to-csv':
+        md_to_csv(input_path)
     elif mode == 'to-md':
-        xlsx_to_md(input_path)
+        suffix = Path(input_path).suffix.lower()
+        if suffix == '.xlsx':
+            xlsx_to_md(input_path)
+        elif suffix == '.csv':
+            csv_to_md(input_path)
+        else:
+            sys.exit(f"[错误] to-md 不支持的文件类型: {suffix}（支持 .xlsx、.csv）")
     else:
         sys.exit(f"[错误] 未知模式: {mode}")
 

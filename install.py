@@ -37,6 +37,20 @@ def register():
             'cmd_key': r'SOFTWARE\Classes\SystemFileAssociations\.xlsx\shell\MdxToMarkdown\command',
             'cmd':     f'"{pythonw}" "{SCRIPT_PATH}" to-md "%1"',
         },
+        # .md 文件 → To CSV
+        {
+            'key':     r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToCsv',
+            'label':   'To CSV (.csv)',
+            'cmd_key': r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToCsv\command',
+            'cmd':     f'"{pythonw}" "{SCRIPT_PATH}" to-csv "%1"',
+        },
+        # .csv 文件 → To Markdown
+        {
+            'key':     r'SOFTWARE\Classes\SystemFileAssociations\.csv\shell\MdxToMarkdown',
+            'label':   'To Markdown (.md)',
+            'cmd_key': r'SOFTWARE\Classes\SystemFileAssociations\.csv\shell\MdxToMarkdown\command',
+            'cmd':     f'"{pythonw}" "{SCRIPT_PATH}" to-md "%1"',
+        },
     ]
 
     for entry in entries:
@@ -63,8 +77,12 @@ def unregister():
     keys_to_delete = [
         r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToExcel\command',
         r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToExcel',
+        r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToCsv\command',
+        r'SOFTWARE\Classes\SystemFileAssociations\.md\shell\MdxToCsv',
         r'SOFTWARE\Classes\SystemFileAssociations\.xlsx\shell\MdxToMarkdown\command',
         r'SOFTWARE\Classes\SystemFileAssociations\.xlsx\shell\MdxToMarkdown',
+        r'SOFTWARE\Classes\SystemFileAssociations\.csv\shell\MdxToMarkdown\command',
+        r'SOFTWARE\Classes\SystemFileAssociations\.csv\shell\MdxToMarkdown',
     ]
     for key_path in keys_to_delete:
         try:
